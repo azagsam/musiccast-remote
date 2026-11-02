@@ -8,6 +8,12 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if let name = receiver.deviceName {
+                Text(name)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             HStack {
                 Text(title)
                     .font(.headline)

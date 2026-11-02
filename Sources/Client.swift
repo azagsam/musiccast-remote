@@ -73,6 +73,10 @@ struct Ack: Decodable {
     let response_code: Int
 }
 
+struct NetworkStatus: Decodable {
+    let network_name: String
+}
+
 struct ZoneStatus: Decodable {
     let power: String
     let volume: Int

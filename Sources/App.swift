@@ -51,6 +51,7 @@ enum Entry {
         let receiver = Receiver()
         await receiver.refresh()
         print("error:", receiver.error ?? "none")
+        print("name:", receiver.deviceName ?? "none")
         print("status:", receiver.status.map { "\($0.power) vol=\($0.volume) input=\($0.input)" } ?? "none")
         print("track:", receiver.play?.track ?? "none")
         print("artwork:", receiver.artworkURL?.absoluteString ?? "none")

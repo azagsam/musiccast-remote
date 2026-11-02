@@ -26,6 +26,7 @@ final class Receiver: ObservableObject {
     private static let volumeHold: TimeInterval = 1.5
 
     @Published var host: String
+    @Published private(set) var deviceName: String?
     @Published private(set) var status: ZoneStatus?
     @Published private(set) var inputs: [InputChoice] = []
     @Published private(set) var presets: [Preset] = []
@@ -77,6 +78,7 @@ final class Receiver: ObservableObject {
         UserDefaults.standard.set(trimmed, forKey: Self.hostKey)
         client = Client(host: trimmed)
         catalogLoaded = false
+        deviceName = nil
         status = nil
         play = nil
         inputs = []
@@ -106,6 +108,8 @@ final class Receiver: ObservableObject {
 
     /// Inputs and presets come from the receiver, so other models work too.
     private func loadCatalog() async throws {
+        let network: NetworkStatus = try await client.get("system/getNetworkStatus")
+        deviceName = network.network_name
         let features: Features = try await client.get("system/getFeatures")
         let names: NameText = try await client.get("system/getNameText")
         let zoneInputs = features.zone.first { $0.id == "main" }?.input_list

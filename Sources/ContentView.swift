@@ -7,6 +7,8 @@ struct ContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            Text(receiver.deviceName ?? "Yamaha Remote")
+                .font(.title3.bold())
             header
             Divider()
             nowPlaying
@@ -32,7 +34,7 @@ struct ContentView: View {
             }
         }
         .padding(16)
-        .frame(width: 340, height: 650, alignment: .top)
+        .frame(width: 340, height: 680, alignment: .top)
         .sheet(isPresented: $receiver.showingSearch) {
             RadioSearchView().environmentObject(receiver)
         }
