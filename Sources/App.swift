@@ -19,7 +19,8 @@ struct YamahaRemoteApp: App {
                 .environmentObject(receiver)
                 .environmentObject(voice)
         }
-        .windowResizability(.contentSize)
+        .defaultSize(width: 380, height: 680)
+        .windowResizability(.contentMinSize)
         .commands { ReceiverCommands(receiver: receiver, voice: voice) }
 
         MenuBarExtra("Yamaha Remote", systemImage: "hifispeaker.fill") {

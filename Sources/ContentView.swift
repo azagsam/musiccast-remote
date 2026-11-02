@@ -34,7 +34,7 @@ struct ContentView: View {
             }
         }
         .padding(16)
-        .frame(width: 340, height: 680, alignment: .top)
+        .frame(minWidth: 340, maxWidth: .infinity, minHeight: 520, maxHeight: .infinity, alignment: .top)
         .sheet(isPresented: $receiver.showingSearch) {
             RadioSearchView().environmentObject(receiver)
         }
