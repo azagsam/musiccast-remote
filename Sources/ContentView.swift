@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var receiver: Receiver
+    @EnvironmentObject private var voice: VoiceController
     @State private var presetToRemove: Preset?
 
     var body: some View {
@@ -13,6 +14,12 @@ struct ContentView: View {
             inputPicker
             presets
             radioActions
+            if let message = voice.message {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
             if let message = receiver.radioMessage, !receiver.showingSearch {
                 Text(message)
                     .font(.caption)
@@ -25,7 +32,7 @@ struct ContentView: View {
             }
         }
         .padding(16)
-        .frame(width: 340, height: 620, alignment: .top)
+        .frame(width: 340, height: 650, alignment: .top)
         .sheet(isPresented: $receiver.showingSearch) {
             RadioSearchView().environmentObject(receiver)
         }
@@ -49,6 +56,12 @@ struct ContentView: View {
             TextField("Receiver IP", text: $receiver.host)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { receiver.connect() }
+            Button(action: voice.toggle) {
+                Image(systemName: voice.isListening ? "mic.fill" : "mic")
+                    .foregroundStyle(voice.isListening ? Color.red : Color.primary)
+            }
+            .help("Voice command")
+            .disabled(receiver.status == nil)
             Button(action: receiver.togglePower) {
                 Image(systemName: "power")
                     .foregroundStyle(receiver.isOn ? Color.green : Color.secondary)

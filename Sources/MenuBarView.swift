@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject private var receiver: Receiver
+    @EnvironmentObject private var voice: VoiceController
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -12,6 +13,12 @@ struct MenuBarView: View {
                     .font(.headline)
                     .lineLimit(1)
                 Spacer()
+                Button(action: voice.toggle) {
+                    Image(systemName: voice.isListening ? "mic.fill" : "mic")
+                        .foregroundStyle(voice.isListening ? Color.red : Color.primary)
+                }
+                .buttonStyle(.borderless)
+                .disabled(receiver.status == nil)
                 Button(action: receiver.togglePower) {
                     Image(systemName: "power")
                         .foregroundStyle(receiver.isOn ? Color.green : Color.secondary)
@@ -36,6 +43,13 @@ struct MenuBarView: View {
                     .frame(width: 30, alignment: .trailing)
             }
             .disabled(!receiver.isOn)
+
+            if let message = voice.message {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {

@@ -226,6 +226,48 @@ final class Receiver: ObservableObject {
         playback(isPlaying ? stopCommand : "play")
     }
 
+    func run(_ command: VoiceCommand) {
+        Task {
+            switch command {
+            case .power(let on):
+                perform("main/setPower?power=\(on ? "on" : "standby")")
+            case .mute(let on):
+                perform("main/setMute?enable=\(on ? "true" : "false")")
+            case .setVolume(let value):
+                await turnOn()
+                setVolume(min(Double(value), maxVolume))
+            case .changeVolume(let delta):
+                await turnOn()
+                nudgeVolume(by: Double(delta))
+            case .play:
+                playback("play")
+            case .stop:
+                playback(status?.input == "net_radio" ? "stop" : "pause")
+            case .next:
+                playback("next")
+            case .previous:
+                playback("previous")
+            case .preset(let preset):
+                await turnOn()
+                recall(preset)
+            case .input(let id):
+                await turnOn()
+                select(input: id)
+            }
+        }
+    }
+
+    private func turnOn() async {
+        guard !isOn else { return }
+        do {
+            try await client.send("main/setPower?power=on")
+            try await Task.sleep(nanoseconds: 1_000_000_000)
+            await refresh()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
     func searchRadio() {
         let query = radioQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return }

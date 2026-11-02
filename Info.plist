@@ -20,6 +20,10 @@
     <string>13.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Yamaha Remote listens for voice commands when you press the microphone button.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Yamaha Remote turns your voice commands into text to control the receiver.</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Yamaha Remote connects to your receiver on the local network.</string>
     <key>NSAppTransportSecurity</key>
