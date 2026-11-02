@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var receiver: Receiver
+    @State private var presetToRemove: Preset?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -11,6 +12,12 @@ struct ContentView: View {
             volume
             inputPicker
             presets
+            radioActions
+            if let message = receiver.radioMessage, !receiver.showingSearch {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             if let error = receiver.error {
                 Text(error)
                     .font(.caption)
@@ -18,8 +25,23 @@ struct ContentView: View {
             }
         }
         .padding(16)
-        .frame(width: 340, height: 560, alignment: .top)
-        .task { receiver.start() }
+        .frame(width: 340, height: 620, alignment: .top)
+        .sheet(isPresented: $receiver.showingSearch) {
+            RadioSearchView().environmentObject(receiver)
+        }
+        .confirmationDialog(
+            "Remove \(presetToRemove?.name ?? "this preset")?",
+            isPresented: Binding(
+                get: { presetToRemove != nil },
+                set: { if !$0 { presetToRemove = nil } }
+            )
+        ) {
+            Button("Remove", role: .destructive) {
+                if let preset = presetToRemove { receiver.remove(preset) }
+            }
+        } message: {
+            Text("This clears the preset on the receiver.")
+        }
     }
 
     private var header: some View {
@@ -131,8 +153,69 @@ struct ContentView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .contextMenu {
+                Button("Move Up") { receiver.move(preset, by: -1) }
+                    .disabled(receiver.neighbor(of: preset, by: -1) == nil)
+                Button("Move Down") { receiver.move(preset, by: 1) }
+                    .disabled(receiver.neighbor(of: preset, by: 1) == nil)
+                Divider()
+                Button("Remove…", role: .destructive) { presetToRemove = preset }
+            }
         }
         .listStyle(.bordered)
         .disabled(!receiver.isOn)
+    }
+
+    private var radioActions: some View {
+        HStack {
+            Button("Find Stations…") { receiver.showingSearch = true }
+            Spacer()
+            Button("Save Current", action: receiver.saveCurrentStation)
+                .disabled(receiver.status?.input != "net_radio" || receiver.radioBusy)
+        }
+        .disabled(!receiver.isOn)
+    }
+}
+
+struct RadioSearchView: View {
+    @EnvironmentObject private var receiver: Receiver
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                TextField("Search internet radio", text: $receiver.radioQuery)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { receiver.searchRadio() }
+                Button("Search", action: receiver.searchRadio)
+                    .disabled(receiver.radioBusy)
+            }
+
+            List(receiver.radioResults) { station in
+                HStack {
+                    Text(station.name).lineLimit(1)
+                    Spacer()
+                    Button { receiver.playRadio(station) } label: { Image(systemName: "play.fill") }
+                        .help("Play")
+                    Button { receiver.saveRadio(station) } label: { Image(systemName: "plus") }
+                        .help("Play and save to presets")
+                }
+                .buttonStyle(.borderless)
+            }
+            .listStyle(.bordered)
+            .disabled(receiver.radioBusy)
+
+            HStack {
+                Text(receiver.radioMessage ?? "")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 400, height: 460)
     }
 }

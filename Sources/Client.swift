@@ -40,15 +40,32 @@ struct Client {
         let _: Ack = try await get(path)
     }
 
-    private func request<T: Decodable>(_ path: String) async throws -> T {
+    func post<Body: Encodable>(_ path: String, body: Body) async throws {
+        let _: Ack = try await request(path, body: JSONEncoder().encode(body))
+    }
+
+    private func request<T: Decodable>(_ path: String, body: Data? = nil) async throws -> T {
         guard let url = URL(string: "http://\(host)/YamahaExtendedControl/v1/\(path)") else {
             throw Failure.badHost
         }
-        let (data, _) = try await Client.session.data(from: url)
+        var request = URLRequest(url: url)
+        if let body {
+            request.httpMethod = "POST"
+            request.httpBody = body
+        }
+        let (data, _) = try await Client.session.data(for: request)
         guard !data.isEmpty else { throw Failure.emptyResponse }
         let ack = try JSONDecoder().decode(Ack.self, from: data)
         guard ack.response_code == 0 else { throw Failure.device(ack.response_code) }
         return try JSONDecoder().decode(T.self, from: data)
+    }
+}
+
+struct AppError: LocalizedError {
+    let errorDescription: String?
+
+    init(_ message: String) {
+        errorDescription = message
     }
 }
 
