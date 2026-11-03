@@ -81,8 +81,10 @@ struct ContentView: View {
                 HStack(spacing: 6) {
                     Circle().fill(statusColor).frame(width: 7, height: 7)
                     Text(statusText)
-                    Text("·").foregroundStyle(.tertiary)
-                    Text(receiver.host).monospacedDigit()
+                    if !receiver.host.isEmpty {
+                        Text("·").foregroundStyle(.tertiary)
+                        Text(receiver.host).monospacedDigit()
+                    }
                 }
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
@@ -93,7 +95,7 @@ struct ContentView: View {
     }
 
     private var statusText: String {
-        guard receiver.status != nil else { return "Not connected" }
+        guard receiver.status != nil else { return receiver.discovering ? "Searching…" : "Not connected" }
         return receiver.isOn ? "Connected" : "Standby"
     }
 
@@ -626,19 +628,77 @@ private struct HostEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Receiver IP")
-                .font(.headline)
-            TextField("192.168.0.41", text: $receiver.host)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 200)
-                .onSubmit(connect)
             HStack {
+                Text("Receivers on this network")
+                    .font(.headline)
                 Spacer()
+                if receiver.discovering {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Button { Task { await receiver.discover() } } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Search again")
+                }
+            }
+
+            if receiver.discovered.isEmpty {
+                Text(receiver.discovering ? "Searching…" : "No receivers found")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 4)
+            } else {
+                VStack(spacing: 2) {
+                    ForEach(receiver.discovered) { found in
+                        Button { pick(found) } label: { row(found) }
+                            .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            Divider().padding(.vertical, 2)
+
+            Text("Or enter an IP address")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            HStack {
+                TextField("192.168.0.41", text: $receiver.host)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(connect)
                 Button("Connect", action: connect)
                     .keyboardShortcut(.defaultAction)
             }
         }
         .padding(14)
+        .frame(width: 280)
+        .task { await receiver.discover() }
+    }
+
+    private func row(_ found: DiscoveredReceiver) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "hifispeaker.fill")
+                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(found.name).lineLimit(1)
+                Text([found.model, found.host].compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            Spacer(minLength: 0)
+            if found.host == receiver.host && receiver.status != nil {
+                Image(systemName: "checkmark").foregroundStyle(Color.accentColor)
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+
+    private func pick(_ found: DiscoveredReceiver) {
+        receiver.connect(to: found)
+        done()
     }
 
     private func connect() {

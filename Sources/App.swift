@@ -29,12 +29,19 @@ struct YamahaRemoteApp: App {
 @main
 enum Entry {
     static func main() {
-        guard CommandLine.arguments.contains("--check") else {
+        let arguments = CommandLine.arguments
+        guard arguments.contains("--check") || arguments.contains("--discover") else {
             YamahaRemoteApp.main()
             return
         }
         Task { @MainActor in
-            await check()
+            if arguments.contains("--discover") {
+                for found in await Discovery.find() {
+                    print(found.host, found.name, found.model ?? "", found.deviceID ?? "")
+                }
+            } else {
+                await check()
+            }
             exit(0)
         }
         dispatchMain()

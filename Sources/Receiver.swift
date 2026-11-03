@@ -43,9 +43,9 @@ struct Preset: Identifiable, Hashable {
 @MainActor
 final class Receiver: ObservableObject {
     private static let hostKey = "host"
+    private static let deviceIDKey = "deviceID"
     private static let recentKey = "recentInputs"
     private static let recentCount = 4
-    private static let defaultHost = "192.168.0.41"
     private static let pollInterval: UInt64 = 2_500_000_000
     /// How long a poll may not overwrite the slider after the user moves it.
     private static let volumeHold: TimeInterval = 1.5
@@ -66,6 +66,8 @@ final class Receiver: ObservableObject {
     @Published private(set) var radioMessage: String?
     @Published private(set) var radioBusy = false
     @Published var showingSearch = false
+    @Published private(set) var discovered: [DiscoveredReceiver] = []
+    @Published private(set) var discovering = false
 
     private var client: Client
     private var pollTask: Task<Void, Never>?
@@ -74,7 +76,7 @@ final class Receiver: ObservableObject {
     private var catalogLoaded = false
 
     init() {
-        let saved = UserDefaults.standard.string(forKey: Self.hostKey) ?? Self.defaultHost
+        let saved = UserDefaults.standard.string(forKey: Self.hostKey) ?? ""
         host = saved
         client = Client(host: saved)
     }
@@ -124,6 +126,7 @@ final class Receiver: ObservableObject {
     func start() {
         guard pollTask == nil else { return }
         pollTask = Task { [weak self] in
+            await self?.findOnLaunch()
             while !Task.isCancelled {
                 await self?.refresh()
                 try? await Task.sleep(nanoseconds: Self.pollInterval)
@@ -131,8 +134,43 @@ final class Receiver: ObservableObject {
         }
     }
 
+    /// With no receiver saved, or the saved one gone (its IP may have changed), look for it.
+    private func findOnLaunch() async {
+        if !host.isEmpty {
+            await refresh()
+            guard error != nil else { return }
+        }
+        await discover()
+        guard client.host == host, error != nil || host.isEmpty else { return }
+        let savedID = UserDefaults.standard.string(forKey: Self.deviceIDKey)
+        let match = host.isEmpty
+            ? discovered.first
+            : discovered.first { savedID != nil && $0.deviceID == savedID }
+        if let match { connect(to: match) }
+    }
+
+    func discover() async {
+        guard !discovering else { return }
+        discovering = true
+        discovered = await Discovery.find()
+        discovering = false
+    }
+
+    func connect(to found: DiscoveredReceiver) {
+        host = found.host
+        connect()
+    }
+
     func connect() {
         let trimmed = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A blank address means "find one" rather than "connect to nothing".
+        guard !trimmed.isEmpty else {
+            Task {
+                await discover()
+                if let first = discovered.first { connect(to: first) }
+            }
+            return
+        }
         host = trimmed
         UserDefaults.standard.set(trimmed, forKey: Self.hostKey)
         client = Client(host: trimmed)
@@ -147,6 +185,10 @@ final class Receiver: ObservableObject {
 
     func refresh() async {
         let client = self.client
+        guard !client.host.isEmpty else {
+            error = discovering ? nil : "No receiver found. Choose one from the receiver menu."
+            return
+        }
         do {
             if !catalogLoaded {
                 try await loadCatalog()
@@ -176,6 +218,9 @@ final class Receiver: ObservableObject {
     private func loadCatalog() async throws {
         let network: NetworkStatus = try await client.get("system/getNetworkStatus")
         deviceName = network.network_name
+        if let info: DeviceInfo = try? await client.get("system/getDeviceInfo"), let id = info.device_id {
+            UserDefaults.standard.set(id, forKey: Self.deviceIDKey)
+        }
         let features: Features = try await client.get("system/getFeatures")
         let names: NameText = try await client.get("system/getNameText")
         let zoneInputs = features.zone.first { $0.id == "main" }?.input_list

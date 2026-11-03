@@ -77,6 +77,11 @@ struct NetworkStatus: Decodable {
     let network_name: String
 }
 
+struct DeviceInfo: Decodable {
+    let model_name: String?
+    let device_id: String?
+}
+
 struct ZoneStatus: Decodable {
     let power: String
     let volume: Int
