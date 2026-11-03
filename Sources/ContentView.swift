@@ -37,6 +37,7 @@ struct ContentView: View {
             messages
         }
         .frame(minWidth: 360, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity, alignment: .top)
+        .background(FrostedWindowBackground().ignoresSafeArea())
         .sheet(isPresented: $receiver.showingSearch) {
             RadioSearchView().environmentObject(receiver)
         }
@@ -517,6 +518,31 @@ private struct NowPlaying {
 }
 
 // MARK: - Pieces
+
+/// Lets the desktop show through the window, blurred, including under the title bar.
+private struct FrostedWindowBackground: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = WindowConfiguringEffectView()
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
+        // Stay frosted when the window isn't key, instead of turning opaque gray.
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+
+    private final class WindowConfiguringEffectView: NSVisualEffectView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window else { return }
+            window.titlebarAppearsTransparent = true
+            window.styleMask.insert(.fullSizeContentView)
+            window.isOpaque = false
+            window.backgroundColor = .clear
+        }
+    }
+}
 
 private struct Card: View {
     let radius: CGFloat
