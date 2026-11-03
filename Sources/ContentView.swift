@@ -133,11 +133,13 @@ struct ContentView: View {
                 Artwork(url: receiver.artworkURL, label: info.artLabel, isTuner: receiver.isTuner)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(info.status)
-                        .font(.system(size: 11, weight: .semibold))
-                        .tracking(0.4)
-                        .textCase(.uppercase)
-                        .foregroundStyle(info.isLive ? Color.red : Color.secondary)
+                    if let status = info.status {
+                        Text(status)
+                            .font(.system(size: 11, weight: .semibold))
+                            .tracking(0.4)
+                            .textCase(.uppercase)
+                            .foregroundStyle(.secondary)
+                    }
                     Text(info.title)
                         .font(.system(size: 15, weight: .semibold))
                         .lineLimit(1)
@@ -456,8 +458,8 @@ struct ContentView: View {
 
 /// What the now-playing card shows for the current input.
 private struct NowPlaying {
-    var status = ""
-    var isLive = false
+    /// Only set when something isn't playing; playback itself needs no label.
+    var status: String?
     var title = ""
     var artist: String?
     var station: String?
@@ -478,15 +480,12 @@ private struct NowPlaying {
         }
         let play = receiver.play
         if receiver.isTuner {
-            status = "● Live"
-            isLive = true
             title = receiver.tunerStation ?? "Tuner"
             artist = "Live broadcast"
             station = "Tuner"
             artLabel = "FM"
         } else if receiver.isRadio {
-            isLive = receiver.isPlaying
-            status = isLive ? "● Live" : "Stopped"
+            status = receiver.isPlaying ? nil : "Stopped"
             let stationName = play?.artist ?? ""
             // Net radio reports the song as "Artist - Title" and the station as the artist.
             let track = play?.track ?? ""
@@ -499,8 +498,7 @@ private struct NowPlaying {
             station = stationName.isEmpty ? nil : stationName
             artLabel = Self.initials(stationName)
         } else if receiver.showsPlayback {
-            isLive = receiver.isPlaying
-            status = isLive ? "● Playing" : "Paused"
+            status = receiver.isPlaying ? nil : "Paused"
             title = play?.track.flatMap { $0.isEmpty ? nil : $0 } ?? receiver.currentInput?.name ?? ""
             artist = play?.artist.flatMap { $0.isEmpty ? nil : $0 }
             station = play?.album.flatMap { $0.isEmpty ? nil : $0 } ?? receiver.currentInput?.name
