@@ -132,3 +132,12 @@ struct PlayInfo: Decodable {
     let track: String?
     let albumart_url: String?
 }
+
+struct TunerPlayInfo: Decodable {
+    struct Band: Decodable {
+        let freq: Int
+    }
+    let band: String
+    let fm: Band?
+    let am: Band?
+}

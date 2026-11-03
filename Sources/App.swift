@@ -15,7 +15,7 @@ struct YamahaRemoteApp: App {
         Window("Yamaha Remote", id: "main") {
             ContentView().environmentObject(receiver)
         }
-        .defaultSize(width: 380, height: 680)
+        .defaultSize(width: 420, height: 760)
         .windowResizability(.contentMinSize)
         .commands { ReceiverCommands(receiver: receiver) }
 

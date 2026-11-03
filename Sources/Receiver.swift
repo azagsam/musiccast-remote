@@ -5,6 +5,20 @@ struct InputChoice: Identifiable, Hashable {
     let id: String
     let name: String
     let usesNetPlayback: Bool
+
+    enum Group: String, CaseIterable {
+        case network = "Network", tuner = "Tuner", hdmi = "HDMI", other = "Other"
+    }
+
+    var group: Group {
+        if id == "tuner" { return .tuner }
+        if id.hasPrefix("hdmi") || id == "tv" { return .hdmi }
+        if usesNetPlayback && id != "usb" { return .network }
+        return .other
+    }
+
+    /// Net Radio and Tuner have presets to browse; other inputs are driven from their source.
+    var hasPresets: Bool { id == "net_radio" || id == "tuner" }
 }
 
 struct Preset: Identifiable, Hashable {
@@ -15,11 +29,22 @@ struct Preset: Identifiable, Hashable {
     let name: String
 
     var id: String { "\(source)-\(number)" }
+
+    /// Net presets read "Station (City/Language)"; the parenthesised part is shown dimmed.
+    var title: String { split.title }
+    var detail: String? { split.detail }
+
+    private var split: (title: String, detail: String?) {
+        guard name.hasSuffix(")"), let open = name.range(of: " (", options: .backwards) else { return (name, nil) }
+        return (String(name[..<open.lowerBound]), String(name[open.upperBound...].dropLast()))
+    }
 }
 
 @MainActor
 final class Receiver: ObservableObject {
     private static let hostKey = "host"
+    private static let recentKey = "recentInputs"
+    private static let recentCount = 4
     private static let defaultHost = "192.168.0.41"
     private static let pollInterval: UInt64 = 2_500_000_000
     /// How long a poll may not overwrite the slider after the user moves it.
@@ -31,6 +56,9 @@ final class Receiver: ObservableObject {
     @Published private(set) var inputs: [InputChoice] = []
     @Published private(set) var presets: [Preset] = []
     @Published private(set) var play: PlayInfo?
+    /// The tuned frequency, named like tuner presets, while the input is Tuner.
+    @Published private(set) var tunerStation: String?
+    @Published private(set) var recentInputIDs: [String] = UserDefaults.standard.stringArray(forKey: recentKey) ?? []
     @Published private(set) var error: String?
     @Published var volume: Double = 0
     @Published var radioQuery = ""
@@ -56,6 +84,37 @@ final class Receiver: ObservableObject {
     var currentInput: InputChoice? { inputs.first { $0.id == status?.input } }
     var showsPlayback: Bool { currentInput?.usesNetPlayback ?? false }
     var isPlaying: Bool { play?.playback == "play" }
+    var isRadio: Bool { status?.input == "net_radio" }
+    var isTuner: Bool { status?.input == "tuner" }
+
+    var recentInputs: [InputChoice] {
+        recentInputIDs.compactMap { id in inputs.first { $0.id == id } }
+    }
+
+    /// Presets for the current input, if it has any.
+    var currentPresets: [Preset] {
+        if isRadio { return presets.filter { $0.source == .net } }
+        if isTuner { return presets.filter { $0.source == .tuner } }
+        return []
+    }
+
+    /// The preset that is playing now, matched by station name or frequency.
+    var currentPreset: Preset? {
+        if isTuner {
+            guard let tunerStation else { return nil }
+            return currentPresets.first { $0.name == tunerStation }
+        }
+        guard isRadio, let station = play?.artist, !station.isEmpty else { return nil }
+        return currentPresets.first { $0.name.hasPrefix(station) || station.hasPrefix($0.name) }
+    }
+
+    /// Previous or next preset, wrapping around, for the station buttons.
+    func step(by offset: Int) {
+        let list = currentPresets
+        guard !list.isEmpty else { return }
+        let index = currentPreset.flatMap(list.firstIndex(of:)) ?? (offset > 0 ? -1 : 0)
+        recall(list[(index + offset + list.count) % list.count])
+    }
 
     var artworkURL: URL? {
         guard let path = play?.albumart_url, !path.isEmpty else { return nil }
@@ -99,6 +158,13 @@ final class Receiver: ObservableObject {
                 volume = Double(latest.volume)
             }
             play = showsPlayback ? try await client.get("netusb/getPlayInfo") : nil
+            if latest.input == "tuner" {
+                let tuner: TunerPlayInfo = try await client.get("tuner/getPlayInfo")
+                tunerStation = Self.tunerName(tuner)
+            } else {
+                tunerStation = nil
+            }
+            noteRecent(latest.input)
             error = nil
         } catch {
             guard client.host == self.client.host else { return }
@@ -148,10 +214,28 @@ final class Receiver: ObservableObject {
     }
 
     private static func frequencyName(_ item: TunerPresets.Item) -> String {
-        if item.band == "fm" {
-            return String(format: "FM %.1f MHz", Double(item.number) / 1000)
+        frequencyName(band: item.band, frequency: item.number)
+    }
+
+    private static func frequencyName(band: String, frequency: Int) -> String {
+        if band == "fm" {
+            return String(format: "FM %.1f MHz", Double(frequency) / 1000)
         }
-        return "\(item.band.uppercased()) \(item.number) kHz"
+        return "\(band.uppercased()) \(frequency) kHz"
+    }
+
+    private static func tunerName(_ info: TunerPlayInfo) -> String? {
+        switch info.band {
+        case "fm": return info.fm.map { frequencyName(band: "fm", frequency: $0.freq) }
+        case "am": return info.am.map { frequencyName(band: "am", frequency: $0.freq) }
+        default: return nil
+        }
+    }
+
+    private func noteRecent(_ id: String) {
+        guard recentInputIDs.first != id else { return }
+        recentInputIDs = Array(([id] + recentInputIDs.filter { $0 != id }).prefix(Self.recentCount))
+        UserDefaults.standard.set(recentInputIDs, forKey: Self.recentKey)
     }
 
     func togglePower() {
@@ -164,6 +248,7 @@ final class Receiver: ObservableObject {
 
     func select(input id: String) {
         guard let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return }
+        noteRecent(id)
         perform("main/setInput?input=\(encoded)")
     }
 
