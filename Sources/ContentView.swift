@@ -280,41 +280,51 @@ struct ContentView: View {
 
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Text("Input")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                Picker("Input", selection: Binding(
-                    get: { receiver.status?.input ?? "" },
-                    set: { receiver.select(input: $0) }
-                )) {
-                    ForEach(InputChoice.Group.allCases, id: \.self) { group in
-                        let members = receiver.inputs.filter { $0.group == group }
-                        if !members.isEmpty {
-                            Section(group.rawValue) {
-                                ForEach(members) { input in
-                                    Text(input.name).tag(input.id)
-                                }
+            Text("Input")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(0.3)
+                .textCase(.uppercase)
+                .foregroundStyle(.secondary)
+
+            // Recent inputs always include the current one, so the menu needn't repeat it.
+            HStack(spacing: 6) {
+                ForEach(receiver.recentInputs) { input in
+                    RecentChip(name: input.name, selected: input.id == receiver.status?.input) {
+                        receiver.select(input: input.id)
+                    }
+                }
+                Spacer(minLength: 8)
+                allInputsMenu
+            }
+        }
+    }
+
+    private var allInputsMenu: some View {
+        Menu {
+            Picker("Input", selection: Binding(
+                get: { receiver.status?.input ?? "" },
+                set: { receiver.select(input: $0) }
+            )) {
+                ForEach(InputChoice.Group.allCases, id: \.self) { group in
+                    let members = receiver.inputs.filter { $0.group == group }
+                    if !members.isEmpty {
+                        Section(group.rawValue) {
+                            ForEach(members) { input in
+                                Text(input.name).tag(input.id)
                             }
                         }
                     }
                 }
-                .labelsHidden()
-                .frame(maxWidth: .infinity)
-                .disabled(receiver.inputs.isEmpty)
             }
-
-            if !receiver.recentInputs.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(receiver.recentInputs) { input in
-                        RecentChip(name: input.name, selected: input.id == receiver.status?.input) {
-                            receiver.select(input: input.id)
-                        }
-                    }
-                }
-                .padding(.leading, 44)
-            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } label: {
+            Text("All Inputs")
+                .font(.system(size: 12))
         }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .disabled(receiver.inputs.isEmpty)
     }
 
     // MARK: Stations
