@@ -3,30 +3,24 @@ import SwiftUI
 
 struct YamahaRemoteApp: App {
     @StateObject private var receiver: Receiver
-    @StateObject private var voice: VoiceController
 
     init() {
         // Started here so the menu bar stays current with the window closed.
         let receiver = Receiver()
         receiver.start()
         _receiver = StateObject(wrappedValue: receiver)
-        _voice = StateObject(wrappedValue: VoiceController(receiver: receiver))
     }
 
     var body: some Scene {
         Window("Yamaha Remote", id: "main") {
-            ContentView()
-                .environmentObject(receiver)
-                .environmentObject(voice)
+            ContentView().environmentObject(receiver)
         }
         .defaultSize(width: 380, height: 680)
         .windowResizability(.contentMinSize)
-        .commands { ReceiverCommands(receiver: receiver, voice: voice) }
+        .commands { ReceiverCommands(receiver: receiver) }
 
         MenuBarExtra("Yamaha Remote", systemImage: "hifispeaker.fill") {
-            MenuBarView()
-                .environmentObject(receiver)
-                .environmentObject(voice)
+            MenuBarView().environmentObject(receiver)
         }
         .menuBarExtraStyle(.window)
     }
@@ -58,20 +52,6 @@ enum Entry {
         print("artwork:", receiver.artworkURL?.absoluteString ?? "none")
         print("inputs:", receiver.inputs.map(\.name))
         print("presets:", receiver.presets.map { "\($0.number) \($0.name)" })
-
-        let phrases = [
-            "turn on", "turn it off", "turn on the radio", "standby", "mute", "unmute",
-            "volume 40", "set the volume to 35", "volume forty", "volume up", "turn the volume down",
-            "louder", "quieter", "volume 140", "next", "stop", "play",
-            "play Val 202", "play val 2 0 2", "play bal 202", "turn on Val 202", "put on radio student",
-            "play radio študent", "listen to KEXP", "play FIP", "play FIP pop", "play NTS radio",
-            "play radio", "switch to bluetooth", "switch to spotify", "play phono",
-            "what's the weather", "play something nice", "good morning"
-        ]
-        for phrase in phrases {
-            let command = VoiceCommand.parse(phrase, presets: receiver.presets, inputs: receiver.inputs)
-            print("voice '\(phrase)':", command.map { "\($0)" } ?? "nil")
-        }
 
         // Navigates the receiver's menu but doesn't affect playback.
         for query in ["jazz", "radio študent", "zzqxv no such station"] {
