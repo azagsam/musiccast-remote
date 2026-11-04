@@ -5,6 +5,9 @@ struct ContentView: View {
     @State private var presetToRemove: Preset?
     @State private var editingHost = false
     @State private var query = ""
+    @State private var editingDB = false
+    @State private var dbText = ""
+    @FocusState private var dbFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -237,6 +240,23 @@ struct ContentView: View {
     private var isMuted: Bool { receiver.status?.mute == true }
 
     private var volume: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            volumeControls
+            HStack(spacing: 6) {
+                ForEach(Receiver.volumePresets, id: \.name) { preset in
+                    RecentChip(
+                        name: preset.name,
+                        selected: !isMuted && receiver.decibels == preset.decibels
+                    ) {
+                        receiver.setVolume(decibels: preset.decibels)
+                    }
+                    .help("Set volume to \(Int(preset.decibels)) dB")
+                }
+            }
+        }
+    }
+
+    private var volumeControls: some View {
         HStack(spacing: 10) {
             Button(action: receiver.toggleMute) {
                 Image(systemName: muteIcon)
@@ -253,10 +273,7 @@ struct ContentView: View {
             )
             .tint(isMuted ? .gray : .accentColor)
 
-            Text(isMuted ? "Muted" : receiver.volumeText)
-                .font(.system(size: 13, weight: .medium))
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
+            volumeReadout
                 .frame(width: 64, alignment: .trailing)
 
             HStack(spacing: 0) {
@@ -271,6 +288,38 @@ struct ContentView: View {
             .frame(height: 24)
             .background(Card(radius: 7))
             .clipShape(RoundedRectangle(cornerRadius: 7))
+        }
+    }
+
+    @ViewBuilder
+    private var volumeReadout: some View {
+        if editingDB {
+            TextField("dB", text: $dbText)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 13, weight: .medium))
+                .monospacedDigit()
+                .multilineTextAlignment(.trailing)
+                .focused($dbFocused)
+                .onSubmit {
+                    receiver.setVolume(decibels: dbText)
+                    editingDB = false
+                }
+                .onExitCommand { editingDB = false }
+                .onChange(of: dbFocused) { focused in
+                    if !focused { editingDB = false }
+                }
+                .onAppear { dbFocused = true }
+        } else {
+            Text(isMuted ? "Muted" : receiver.volumeText)
+                .font(.system(size: 13, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    dbText = String(format: "%.1f", receiver.decibels)
+                    editingDB = true
+                }
+                .help("Click to type a volume in dB")
         }
     }
 

@@ -84,9 +84,15 @@ final class Receiver: ObservableObject {
     var isOn: Bool { status?.power == "on" }
     var maxVolume: Double { Double(status?.max_volume ?? 161) }
 
+    static let volumePresets: [(name: String, decibels: Double)] = [
+        ("Quiet", -50), ("Medium", -30), ("Loud", -20),
+    ]
+
+    var decibels: Double { (volume - maxVolume) * 0.5 }
+
     /// The volume as the receiver's display shows it: 0.5 dB per step, top step is 0.0 dB.
     var volumeText: String {
-        String(format: "%.1f dB", (volume - maxVolume) * 0.5)
+        String(format: "%.1f dB", decibels)
     }
     var currentInput: InputChoice? { inputs.first { $0.id == status?.input } }
     var showsPlayback: Bool { currentInput?.usesNetPlayback ?? false }
@@ -481,6 +487,23 @@ final class Receiver: ObservableObject {
                 self.error = error.localizedDescription
             }
         }
+    }
+
+    /// Sets the volume from typed dB. A missing minus sign is assumed, since the top is 0.0 dB.
+    @discardableResult
+    func setVolume(decibels text: String) -> Bool {
+        let cleaned = text.lowercased()
+            .replacingOccurrences(of: "db", with: "")
+            .replacingOccurrences(of: ",", with: ".")
+            .replacingOccurrences(of: "\u{2212}", with: "-")
+            .trimmingCharacters(in: .whitespaces)
+        guard let db = Double(cleaned), db.isFinite else { return false }
+        setVolume(decibels: -abs(db))
+        return true
+    }
+
+    func setVolume(decibels db: Double) {
+        setVolume(min(max(maxVolume + db * 2, 0), maxVolume))
     }
 
     func nudgeVolume(by delta: Double) {
