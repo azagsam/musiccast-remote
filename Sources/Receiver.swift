@@ -85,7 +85,7 @@ final class Receiver: ObservableObject {
     var maxVolume: Double { Double(status?.max_volume ?? 161) }
 
     static let volumePresets: [(name: String, decibels: Double)] = [
-        ("Quiet", -50), ("Medium", -30), ("Loud", -20),
+        ("Quiet", -50), ("Low", -40), ("Medium", -30), ("Loud", -20),
     ]
 
     var decibels: Double { (volume - maxVolume) * 0.5 }
