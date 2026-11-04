@@ -295,7 +295,36 @@ final class Receiver: ObservableObject {
     }
 
     func togglePower() {
-        perform("main/setPower?power=\(isOn ? "standby" : "on")")
+        if isOn {
+            perform("main/setPower?power=standby")
+        } else {
+            powerOnQuiet()
+        }
+    }
+
+    /// Turns the receiver on and starts it at the Quiet preset. The receiver may reject
+    /// volume changes while it is still waking, so keep trying for a few seconds.
+    private func powerOnQuiet() {
+        let quiet = Self.volumePresets[0].decibels
+        let step = Int(min(max(maxVolume + quiet * 2, 0), maxVolume))
+        Task {
+            do {
+                try await client.send("main/setPower?power=on")
+                error = nil
+                for attempt in 0..<10 {
+                    do {
+                        try await client.send("main/setVolume?volume=\(step)")
+                        break
+                    } catch where attempt < 9 {
+                        try await Task.sleep(nanoseconds: 300_000_000)
+                    }
+                }
+                volume = Double(step)
+                await refresh()
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
     }
 
     func toggleMute() {
