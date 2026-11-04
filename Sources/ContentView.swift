@@ -185,7 +185,7 @@ struct ContentView: View {
         } label: {
             Image(systemName: saved == nil ? "star" : "star.fill")
                 .font(.system(size: 15))
-                .foregroundStyle(saved == nil ? Color.secondary : Color.orange)
+                .foregroundStyle(saved == nil ? Color.secondary : Color.primary)
         }
         .buttonStyle(IconButtonStyle(size: 32, radius: 16))
         .help(saved == nil ? "Save Current" : "Remove from Presets")
