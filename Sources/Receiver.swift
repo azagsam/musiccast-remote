@@ -70,6 +70,8 @@ final class Receiver: ObservableObject {
     @Published var showingSearch = false
     @Published var showingHistory = false
     @Published private(set) var songs = SongHistory.load()
+    @Published private(set) var routines = RoutineStore.load()
+    @Published private(set) var runningRoutine: Routine.ID?
     @Published private(set) var discovered: [DiscoveredReceiver] = []
     @Published private(set) var discovering = false
 
@@ -334,26 +336,137 @@ final class Receiver: ObservableObject {
     /// Turns the receiver on and starts it at the Quiet preset. The receiver may reject
     /// volume changes while it is still waking, so keep trying for a few seconds.
     private func powerOnQuiet() {
-        let quiet = Self.volumePresets[0].decibels
-        let step = Int(min(max(maxVolume + quiet * 2, 0), maxVolume))
         Task {
             do {
                 try await client.send("main/setPower?power=on")
                 error = nil
-                for attempt in 0..<10 {
-                    do {
-                        try await client.send("main/setVolume?volume=\(step)")
-                        break
-                    } catch where attempt < 9 {
-                        try await Task.sleep(nanoseconds: 300_000_000)
-                    }
-                }
-                volume = Double(step)
+                try await applyVolume(decibels: Self.volumePresets[0].decibels)
                 await refresh()
             } catch {
                 self.error = error.localizedDescription
             }
         }
+    }
+
+    private func step(forDecibels db: Double) -> Int {
+        Int(min(max(maxVolume + db * 2, 0), maxVolume).rounded())
+    }
+
+    /// Sets the volume, retrying while the receiver is still waking and rejects it.
+    private func applyVolume(decibels db: Double) async throws {
+        let step = step(forDecibels: db)
+        for attempt in 0..<10 {
+            do {
+                try await client.send("main/setVolume?volume=\(step)")
+                break
+            } catch where attempt < 9 {
+                try await Task.sleep(nanoseconds: 300_000_000)
+            }
+        }
+        volume = Double(step)
+        volumeHeldUntil = Date().addingTimeInterval(Self.volumeHold)
+    }
+
+    // MARK: Routines
+
+    /// A routine capturing what's playing now and the current volume.
+    var currentRoutine: Routine? {
+        guard isOn, let input = status?.input else { return nil }
+        var routine = Routine(name: "", input: input, decibels: decibels)
+        if isRadio || isTuner {
+            guard let preset = currentPreset else { return nil }
+            routine.preset = preset.name
+        }
+        return routine
+    }
+
+    /// Why the current state can't be saved as a routine, if it can't.
+    var currentRoutineProblem: String? {
+        guard status != nil else { return "Not connected" }
+        guard isOn else { return "Turn the receiver on first" }
+        if (isRadio || isTuner) && currentPreset == nil {
+            return "Save this station as a preset first, so the routine can find it"
+        }
+        return nil
+    }
+
+    func saveCurrentRoutine(named name: String) {
+        let name = name.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty, var routine = currentRoutine else { return }
+        routine.name = name
+        routines.append(routine)
+        RoutineStore.save(routines)
+    }
+
+    func updateToCurrent(_ routine: Routine) {
+        guard var current = currentRoutine, let index = routines.firstIndex(where: { $0.id == routine.id }) else {
+            error = currentRoutineProblem
+            return
+        }
+        current.id = routine.id
+        current.name = routine.name
+        routines[index] = current
+        RoutineStore.save(routines)
+    }
+
+    func deleteRoutine(_ routine: Routine) {
+        routines.removeAll { $0.id == routine.id }
+        RoutineStore.save(routines)
+    }
+
+    func run(_ routine: Routine) {
+        guard runningRoutine == nil else { return }
+        runningRoutine = routine.id
+        Task {
+            do {
+                try await apply(routine)
+                error = nil
+            } catch {
+                self.error = "\(routine.name): \(error.localizedDescription)"
+            }
+            runningRoutine = nil
+            await refresh()
+        }
+    }
+
+    private func apply(_ routine: Routine) async throws {
+        if !isOn {
+            try await client.send("main/setPower?power=on")
+            try await waitUntilOn()
+        }
+        if let name = routine.preset {
+            let source: Preset.Source = routine.input == "tuner" ? .tuner : .net
+            let presets = try await fetchPresets()
+            self.presets = presets
+            guard let preset = presets.first(where: { $0.source == source && $0.name == name }) else {
+                throw AppError("\(name) is no longer a preset")
+            }
+            switch source {
+            case .net:
+                try await client.send("netusb/recallPreset?zone=main&num=\(preset.number)")
+                try await waitUntilPlaying(Preset(source: .net, number: 0, name: name).title,
+                                           else: "\(name) didn't start playing")
+            case .tuner:
+                try await client.send("tuner/recallPreset?zone=main&band=common&num=\(preset.number)")
+            }
+        } else if let input = routine.input, status?.input != input,
+                  let encoded = input.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            try await client.send("main/setInput?input=\(encoded)")
+            noteRecent(input)
+            try await Task.sleep(nanoseconds: 500_000_000)
+        }
+        if let db = routine.decibels {
+            try await applyVolume(decibels: db)
+        }
+    }
+
+    private func waitUntilOn() async throws {
+        for _ in 0..<20 {
+            let latest: ZoneStatus = try await client.get("main/getStatus")
+            if latest.power == "on" { return }
+            try await Task.sleep(nanoseconds: 300_000_000)
+        }
+        throw AppError("The receiver didn't turn on")
     }
 
     func toggleMute() {
@@ -479,13 +592,13 @@ final class Receiver: ObservableObject {
         try await RadioBrowser(client: client).play(station)
     }
 
-    private func waitUntilPlaying(_ name: String) async throws {
+    private func waitUntilPlaying(_ name: String, else failure: String? = nil) async throws {
         for _ in 0..<24 {
             try await Task.sleep(nanoseconds: 500_000_000)
             let info: PlayInfo = try await client.get("netusb/getPlayInfo")
             if info.playback == "play", info.artist?.hasPrefix(name) == true { return }
         }
-        throw AppError("\(name) didn't start playing, so it wasn't saved")
+        throw AppError(failure ?? "\(name) didn't start playing, so it wasn't saved")
     }
 
     private func store(_ name: String, in slot: Int) async throws -> String {
@@ -561,7 +674,7 @@ final class Receiver: ObservableObject {
     }
 
     func setVolume(decibels db: Double) {
-        setVolume(min(max(maxVolume + db * 2, 0), maxVolume))
+        setVolume(Double(step(forDecibels: db)))
     }
 
     func nudgeVolume(by delta: Double) {

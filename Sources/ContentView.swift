@@ -8,13 +8,19 @@ struct ContentView: View {
     @State private var editingDB = false
     @State private var dbText = ""
     @FocusState private var dbFocused: Bool
+    @State private var savingRoutine = false
+    @State private var routineName = ""
 
     var body: some View {
         VStack(spacing: 0) {
             header
                 .padding(.horizontal, 20)
                 .padding(.top, 4)
-                .padding(.bottom, 16)
+                .padding(.bottom, 12)
+
+            routineBar
+                .padding(.horizontal, 20)
+                .padding(.bottom, 14)
 
             VStack(spacing: 0) {
                 nowPlaying
@@ -129,6 +135,81 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .help(receiver.isOn ? "Standby" : "Turn on")
         .disabled(receiver.status == nil)
+    }
+
+    // MARK: Routines
+
+    private var routineBar: some View {
+        HStack(spacing: 6) {
+            ForEach(receiver.routines) { routine in
+                RoutineChip(name: routine.name, running: receiver.runningRoutine == routine.id) {
+                    receiver.run(routine)
+                }
+                .help(routine.summary)
+                .contextMenu {
+                    Button("Update to Current") { receiver.updateToCurrent(routine) }
+                        .disabled(receiver.currentRoutine == nil)
+                    Divider()
+                    Button("Delete", role: .destructive) { receiver.deleteRoutine(routine) }
+                }
+            }
+            Button {
+                routineName = ""
+                savingRoutine = true
+            } label: {
+                Label(receiver.routines.isEmpty ? "Save Current as Routine" : "Save Current",
+                      systemImage: "plus")
+                    .font(.system(size: 11, weight: .medium))
+                    .padding(.horizontal, 9)
+                    .frame(height: 22)
+                    .foregroundStyle(.secondary)
+                    .background(Capsule().strokeBorder(Color.primary.opacity(0.18), style: StrokeStyle(lineWidth: 0.5, dash: [3, 2])))
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .help("Save the current station and volume as a routine")
+            .popover(isPresented: $savingRoutine, arrowEdge: .bottom) { routineSaver }
+            Spacer(minLength: 0)
+        }
+        .disabled(receiver.status == nil)
+    }
+
+    private var routineSaver: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("New Routine").font(.headline)
+            if let problem = receiver.currentRoutineProblem {
+                Text(problem)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Spacer()
+                    Button("OK") { savingRoutine = false }.keyboardShortcut(.defaultAction)
+                }
+            } else {
+                TextField("Name, like Working", text: $routineName)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(saveRoutine)
+                Text("Turns on, then plays \(receiver.currentRoutine?.summary ?? "")")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Spacer()
+                    Button("Cancel") { savingRoutine = false }.keyboardShortcut(.cancelAction)
+                    Button("Save", action: saveRoutine)
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(routineName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 280)
+    }
+
+    private func saveRoutine() {
+        receiver.saveCurrentRoutine(named: routineName)
+        savingRoutine = false
     }
 
     // MARK: Now playing
@@ -722,6 +803,32 @@ private struct RecentChip: View {
                 .foregroundStyle(selected ? Color.white : Color.primary.opacity(0.8))
                 .background(Capsule().fill(selected ? Color.accentColor : Color.primary.opacity(0.08)))
                 .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct RoutineChip: View {
+    let name: String
+    let running: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                if running {
+                    ProgressView().controlSize(.mini)
+                } else {
+                    Image(systemName: "play.fill").font(.system(size: 8))
+                }
+                Text(name).lineLimit(1)
+            }
+            .font(.system(size: 11, weight: .semibold))
+            .padding(.horizontal, 10)
+            .frame(height: 22)
+            .foregroundStyle(Color.primary.opacity(0.85))
+            .background(Capsule().fill(Color.primary.opacity(0.08)))
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }

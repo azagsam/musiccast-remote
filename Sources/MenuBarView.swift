@@ -26,6 +26,17 @@ struct MenuBarView: View {
                 .disabled(receiver.status == nil)
             }
 
+            if !receiver.routines.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(receiver.routines) { routine in
+                        Button(routine.name) { receiver.run(routine) }
+                            .help(routine.summary)
+                    }
+                }
+                .controlSize(.small)
+                .disabled(receiver.status == nil || receiver.runningRoutine != nil)
+            }
+
             HStack {
                 Button(action: receiver.toggleMute) {
                     Image(systemName: receiver.status?.mute == true ? "speaker.slash.fill" : "speaker.wave.2.fill")
