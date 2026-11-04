@@ -130,6 +130,22 @@ struct TunerPresets: Decodable {
     let preset_info: [Item]
 }
 
+struct SignalInfo: Decodable {
+    struct Audio: Decodable {
+        let error: Int?
+        let format: String?
+        let fs: String?
+    }
+    let audio: Audio?
+
+    /// For example "AAC · 48 kHz"; nil when there is no signal.
+    var text: String? {
+        guard let audio, audio.error ?? 0 == 0 else { return nil }
+        let parts = [audio.format, audio.fs].compactMap { $0?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
+
 struct PlayInfo: Decodable {
     let playback: String?
     let artist: String?

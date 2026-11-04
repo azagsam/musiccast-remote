@@ -44,6 +44,9 @@ struct ContentView: View {
         .sheet(isPresented: $receiver.showingSearch) {
             RadioSearchView().environmentObject(receiver)
         }
+        .sheet(isPresented: $receiver.showingHistory) {
+            SongHistoryView().environmentObject(receiver)
+        }
         .confirmationDialog(
             "Remove \(presetToRemove?.name ?? "this preset")?",
             isPresented: Binding(
@@ -159,12 +162,32 @@ struct ContentView: View {
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
                     }
+                    if receiver.isOn, let signal = receiver.signal {
+                        Text(signal)
+                            .font(.system(size: 10, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .frame(height: 16)
+                            .background(Capsule().strokeBorder(Color.primary.opacity(0.2), lineWidth: 0.5))
+                            .padding(.top, 4)
+                            .help("Incoming audio signal")
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if receiver.isRadio {
-                    saveButton
-                        .frame(maxHeight: .infinity, alignment: .top)
+                    VStack(spacing: 2) {
+                        saveButton
+                        Button { receiver.showingHistory = true } label: {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(IconButtonStyle(size: 32, radius: 16))
+                        .help("Song History")
+                    }
+                    .frame(maxHeight: .infinity, alignment: .top)
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -539,11 +562,10 @@ private struct NowPlaying {
             let stationName = play?.artist ?? ""
             // Net radio reports the song as "Artist - Title" and the station as the artist.
             let track = play?.track ?? ""
-            if let dash = track.range(of: " - ") {
-                artist = String(track[..<dash.lowerBound])
-                title = String(track[dash.upperBound...])
+            if track.isEmpty {
+                title = stationName.isEmpty ? "Net Radio" : stationName
             } else {
-                title = track.isEmpty ? (stationName.isEmpty ? "Net Radio" : stationName) : track
+                (artist, title) = Song.split(track)
             }
             station = stationName.isEmpty ? nil : stationName
             artLabel = Self.initials(stationName)
@@ -878,5 +900,78 @@ struct RadioSearchView: View {
         }
         .padding(16)
         .frame(width: 400, height: 460)
+    }
+}
+
+struct SongHistoryView: View {
+    @EnvironmentObject private var receiver: Receiver
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    @State private var confirmingClear = false
+
+    private var songs: [Song] {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return receiver.songs }
+        return receiver.songs.filter { $0.text.localizedCaseInsensitiveContains(q) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            TextField("Search songs, artists, stations", text: $query)
+                .textFieldStyle(.roundedBorder)
+
+            List(songs) { song in
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(song.title).lineLimit(1)
+                        Text([song.artist, song.station].compactMap { $0 }.joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                    Text(song.date, format: .dateTime.day().month(.abbreviated).hour().minute())
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .contextMenu {
+                    Button("Copy") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(song.artist.map { "\($0) - \(song.title)" } ?? song.title, forType: .string)
+                    }
+                    Button("Remove") { receiver.removeSong(song) }
+                }
+            }
+            .listStyle(.bordered)
+            .overlay {
+                if songs.isEmpty {
+                    Text(receiver.songs.isEmpty ? "Songs played on net radio will appear here." : "No matches")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            HStack {
+                Text("\(receiver.songs.count) songs")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Show in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([SongHistory.url])
+                }
+                .buttonStyle(.link)
+                .font(.caption)
+                .disabled(receiver.songs.isEmpty)
+                Spacer()
+                Button("Clear…") { confirmingClear = true }
+                    .disabled(receiver.songs.isEmpty)
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(16)
+        .frame(width: 440, height: 520)
+        .confirmationDialog("Clear song history?", isPresented: $confirmingClear) {
+            Button("Clear", role: .destructive, action: receiver.clearSongs)
+        }
     }
 }

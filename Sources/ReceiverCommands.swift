@@ -42,6 +42,12 @@ struct ReceiverCommands: Commands {
             }
             .keyboardShortcut("f", modifiers: .command)
             .disabled(!receiver.isOn)
+
+            Button("Song History…") {
+                openWindow(id: "main")
+                receiver.showingHistory = true
+            }
+            .keyboardShortcut("y", modifiers: .command)
         }
     }
 }

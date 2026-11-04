@@ -56,6 +56,8 @@ final class Receiver: ObservableObject {
     @Published private(set) var inputs: [InputChoice] = []
     @Published private(set) var presets: [Preset] = []
     @Published private(set) var play: PlayInfo?
+    /// The incoming audio format, such as "AAC · 48 kHz".
+    @Published private(set) var signal: String?
     /// The tuned frequency, named like tuner presets, while the input is Tuner.
     @Published private(set) var tunerStation: String?
     @Published private(set) var recentInputIDs: [String] = UserDefaults.standard.stringArray(forKey: recentKey) ?? []
@@ -66,6 +68,8 @@ final class Receiver: ObservableObject {
     @Published private(set) var radioMessage: String?
     @Published private(set) var radioBusy = false
     @Published var showingSearch = false
+    @Published var showingHistory = false
+    @Published private(set) var songs = SongHistory.load()
     @Published private(set) var discovered: [DiscoveredReceiver] = []
     @Published private(set) var discovering = false
 
@@ -211,6 +215,8 @@ final class Receiver: ObservableObject {
                 volume = Double(latest.volume)
             }
             play = showsPlayback ? try await client.get("netusb/getPlayInfo") : nil
+            recordSong()
+            signal = latest.power == "on" ? (try? await client.get("main/getSignalInfo", as: SignalInfo.self))?.text : nil
             if latest.input == "tuner" {
                 let tuner: TunerPlayInfo = try await client.get("tuner/getPlayInfo")
                 tunerStation = Self.tunerName(tuner)
@@ -292,6 +298,29 @@ final class Receiver: ObservableObject {
         guard recentInputIDs.first != id else { return }
         recentInputIDs = Array(([id] + recentInputIDs.filter { $0 != id }).prefix(Self.recentCount))
         UserDefaults.standard.set(recentInputIDs, forKey: Self.recentKey)
+    }
+
+    /// Logs a new song when the net radio stream text changes.
+    private func recordSong() {
+        guard isRadio, isPlaying,
+              let station = play?.artist, !station.isEmpty,
+              let track = play?.track?.trimmingCharacters(in: .whitespaces), !track.isEmpty,
+              track != station
+        else { return }
+        let (artist, title) = Song.split(track)
+        if let last = songs.first, last.station == station, last.artist == artist, last.title == title { return }
+        songs.insert(Song(date: Date(), station: station, artist: artist, title: title), at: 0)
+        SongHistory.save(songs)
+    }
+
+    func removeSong(_ song: Song) {
+        songs.removeAll { $0.id == song.id }
+        SongHistory.save(songs)
+    }
+
+    func clearSongs() {
+        songs = []
+        SongHistory.save(songs)
     }
 
     func togglePower() {
