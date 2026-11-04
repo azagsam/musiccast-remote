@@ -36,10 +36,10 @@ struct MenuBarView: View {
                     value: Binding(get: { receiver.volume }, set: { receiver.setVolume($0) }),
                     in: 0...receiver.maxVolume
                 )
-                Text("\(Int(receiver.volume))")
+                Text(receiver.volumeText)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
-                    .frame(width: 30, alignment: .trailing)
+                    .frame(width: 62, alignment: .trailing)
             }
             .disabled(!receiver.isOn)
 

@@ -83,6 +83,11 @@ final class Receiver: ObservableObject {
 
     var isOn: Bool { status?.power == "on" }
     var maxVolume: Double { Double(status?.max_volume ?? 161) }
+
+    /// The volume as the receiver's display shows it: 0.5 dB per step, top step is 0.0 dB.
+    var volumeText: String {
+        String(format: "%.1f dB", (volume - maxVolume) * 0.5)
+    }
     var currentInput: InputChoice? { inputs.first { $0.id == status?.input } }
     var showsPlayback: Bool { currentInput?.usesNetPlayback ?? false }
     var isPlaying: Bool { play?.playback == "play" }

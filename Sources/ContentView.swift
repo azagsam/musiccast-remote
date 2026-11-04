@@ -253,11 +253,11 @@ struct ContentView: View {
             )
             .tint(isMuted ? .gray : .accentColor)
 
-            Text(isMuted ? "Muted" : "\(Int(receiver.volume))")
+            Text(isMuted ? "Muted" : receiver.volumeText)
                 .font(.system(size: 13, weight: .medium))
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
-                .frame(width: 50, alignment: .trailing)
+                .frame(width: 64, alignment: .trailing)
 
             HStack(spacing: 0) {
                 Button { receiver.nudgeVolume(by: -2) } label: { Image(systemName: "minus") }
