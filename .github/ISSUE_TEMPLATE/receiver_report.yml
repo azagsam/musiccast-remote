@@ -1,0 +1,54 @@
+name: Receiver report
+description: Tell us how the app works with your receiver model, even if everything works
+labels: [compatibility]
+body:
+  - type: markdown
+    attributes:
+      value: Only the R-N602 has been tested so far. Reports from other models tell us what works and what needs fixing.
+  - type: input
+    id: model
+    attributes:
+      label: Receiver model
+      placeholder: RX-V685
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version
+      description: Shown in the MusicCast app, or as `system_version` at `http://<receiver-ip>/YamahaExtendedControl/v1/system/getDeviceInfo`.
+  - type: input
+    id: versions
+    attributes:
+      label: App and macOS version
+      placeholder: 1.0.0 on macOS 15.4
+    validations:
+      required: true
+  - type: checkboxes
+    id: works
+    attributes:
+      label: What works?
+      description: Tick everything that works. Leave unticked what doesn't work or what you didn't try, and explain below.
+      options:
+        - label: The receiver is found automatically when the app starts
+        - label: Power on and standby
+        - label: Volume slider, typed dB value and volume presets
+        - label: Mute
+        - label: Switching inputs
+        - label: Net radio presets and station search
+        - label: Tuner presets
+        - label: Now playing, artwork and audio format
+        - label: Routines
+        - label: Menu bar extra
+  - type: textarea
+    id: notes
+    attributes:
+      label: What didn't work, or anything else?
+  - type: textarea
+    id: check
+    attributes:
+      label: Output of --check
+      description: |
+        Run this in Terminal and paste the output. It doesn't change playback or presets.
+        `"/Applications/Remote for MusicCast.app/Contents/MacOS/MusicCastRemote" --check`
+      render: text

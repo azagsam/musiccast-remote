@@ -82,6 +82,10 @@ The binary has two options that don't open the UI:
 Settings are kept in the app's user defaults (`io.github.azagsam.MusicCastRemote`). The song history and routines are in `~/Library/Application Support/Remote for MusicCast/`.
 Settings and data from versions named Yamaha Remote are copied over on first launch.
 
+## Contributing
+
+Contributions are welcome, especially reports from receiver models other than the R-N602. See [CONTRIBUTING.md](CONTRIBUTING.md) to get started, and the [changelog](CHANGELOG.md) for what's new.
+
 ## License
 
 [MIT](LICENSE)

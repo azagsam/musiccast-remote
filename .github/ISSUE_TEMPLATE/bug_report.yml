@@ -1,0 +1,58 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting. The details below help reproduce the problem, since behavior can differ between receiver models and firmware versions.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Select Net Radio
+        2. Click a preset
+        3. ...
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Remote for MusicCast ▸ About, or the release you downloaded.
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: macOS 15.4, Apple silicon
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Receiver model
+      placeholder: R-N602
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Receiver firmware version
+      description: Shown in the MusicCast app, or as `system_version` at `http://<receiver-ip>/YamahaExtendedControl/v1/system/getDeviceInfo`.
+      placeholder: "1.71"
+  - type: textarea
+    id: check
+    attributes:
+      label: Output of --check
+      description: |
+        Run this in Terminal and paste the output. It doesn't change playback or presets.
+        `"/Applications/Remote for MusicCast.app/Contents/MacOS/MusicCastRemote" --check`
+      render: text
