@@ -17,52 +17,51 @@ A small macOS app for controlling a Yamaha MusicCast receiver over the local net
 
 ## Requirements
 
-- macOS 13 Ventura or later
-- Xcode Command Line Tools with Swift 5.9 or later. Full Xcode isn't needed. Install the tools with:
-
-  ```sh
-  xcode-select --install
-  ```
-
+- macOS 13 Ventura or later, on an Apple silicon or Intel Mac
 - A Yamaha MusicCast receiver on the same network as the Mac
-
-## Build
-
-```sh
-git clone https://github.com/azagsam/musiccast-remote.git
-cd musiccast-remote
-./build.sh
-```
-
-This builds a release binary with `swift build` and packages it as `build/Remote for MusicCast.app`, signed ad hoc for local use.
 
 ## Install
 
-Copy the app into Applications and open it:
+1. Download `Remote-for-MusicCast-<version>.zip` from the [latest release](https://github.com/azagsam/musiccast-remote/releases/latest) and unzip it.
+2. Move **Remote for MusicCast.app** to your Applications folder.
+3. Open it. The app isn't notarized by Apple, so macOS blocks it the first time:
+   - **macOS 15 Sequoia and later:** click **Done**, then go to System Settings ▸ Privacy & Security, scroll down and click **Open Anyway**.
+   - **macOS 13 and 14:** right-click the app, choose **Open**, then click **Open** again.
 
-```sh
-cp -R "build/Remote for MusicCast.app" /Applications/
-open "/Applications/Remote for MusicCast.app"
-```
+   Or remove the quarantine flag in Terminal, then open the app normally:
 
-On first launch:
+   ```sh
+   xattr -dr com.apple.quarantine "/Applications/Remote for MusicCast.app"
+   ```
 
-- **Local network access:** macOS asks whether Remote for MusicCast may find devices on your local network. Choose **Allow**, or the app can't reach the receiver. If you declined, turn it on in System Settings ▸ Privacy & Security ▸ Local Network.
-- **Gatekeeper:** the app is signed ad hoc, not notarized. A copy you built yourself opens normally. A copy downloaded from elsewhere may be blocked; right-click it and choose **Open**, or allow it in System Settings ▸ Privacy & Security.
+On first launch, macOS asks whether Remote for MusicCast may find devices on your local network. Choose **Allow**, or the app can't reach the receiver. If you declined, turn it on in System Settings ▸ Privacy & Security ▸ Local Network.
 
 The app looks for receivers with SSDP when it starts. If it doesn't find yours, click the receiver name at the top of the window and enter its IP address.
 
 To start the app at login, add it in System Settings ▸ General ▸ Login Items.
 
-## Update
+To update, quit the app, download the new release and replace the copy in Applications.
+
+## Build from source
+
+You need the Xcode Command Line Tools with Swift 5.9 or later. Full Xcode isn't needed. Install the tools with:
 
 ```sh
-git pull
+xcode-select --install
+```
+
+Then build:
+
+```sh
+git clone https://github.com/azagsam/musiccast-remote.git
+cd musiccast-remote
 ./build.sh
 cp -R "build/Remote for MusicCast.app" /Applications/
 ```
 
-Quit the running app before copying, then open it again.
+`build.sh` builds a universal binary with `swift build` and packages it as `build/Remote for MusicCast.app`, signed ad hoc. A copy you built yourself opens without the Gatekeeper steps above.
+
+To update, quit the app, then `git pull`, run `./build.sh` and copy the app again.
 
 ## Command line checks
 
