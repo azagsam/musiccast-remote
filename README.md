@@ -23,8 +23,8 @@ A small macOS app for controlling a Yamaha MusicCast receiver over the local net
 ## Build
 
 ```sh
-git clone https://github.com/azagsam/yamaha-remote.git
-cd yamaha-remote
+git clone https://github.com/azagsam/musiccast-remote.git
+cd musiccast-remote
 ./build.sh
 ```
 
