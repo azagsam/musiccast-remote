@@ -2,6 +2,9 @@
 
 A small macOS app for controlling a Yamaha MusicCast receiver over the local network, using Yamaha Extended Control (YXC). Built and tested with an R-N602.
 
+> [!NOTE]
+> This is an unofficial, independent project. It is not affiliated with, endorsed by or supported by Yamaha Corporation in any way. See [Trademarks](#trademarks).
+
 <p align="center">
   <img src="docs/screenshots/main-window.png" width="390" alt="Main window: now playing with artwork and audio format, volume presets, inputs and station list">
   &nbsp;&nbsp;
