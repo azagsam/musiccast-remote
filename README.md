@@ -5,7 +5,7 @@ A small macOS app for controlling a Yamaha MusicCast receiver over the local net
 <p align="center">
   <img src="docs/screenshots/main-window.png" width="380" alt="Main window: now playing with artwork and audio format, volume presets, inputs and station list">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/menu-bar.png" width="280" alt="Menu bar extra: current station, routine, volume and presets">
+  <img src="docs/screenshots/menu-bar.png" width="292" alt="Menu bar extra: current station, routine, volume and presets">
 </p>
 
 - Power, volume in dB (slider, typed value, or Quiet / Low / Medium / Loud presets), mute
