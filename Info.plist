@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Yamaha Remote</string>
+    <string>Remote for MusicCast</string>
     <key>CFBundleDisplayName</key>
-    <string>Yamaha Remote</string>
+    <string>Remote for MusicCast</string>
     <key>CFBundleIdentifier</key>
-    <string>local.pyamaha.YamahaRemote</string>
+    <string>io.github.azagsam.MusicCastRemote</string>
     <key>CFBundleExecutable</key>
-    <string>YamahaRemote</string>
+    <string>MusicCastRemote</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>
@@ -23,7 +23,7 @@
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>Yamaha Remote connects to your receiver on the local network.</string>
+    <string>Remote for MusicCast connects to your receiver on the local network.</string>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsLocalNetworking</key>

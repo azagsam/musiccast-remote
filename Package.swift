@@ -2,9 +2,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "YamahaRemote",
+    name: "MusicCastRemote",
     platforms: [.macOS(.v13)],
     targets: [
-        .executableTarget(name: "YamahaRemote", path: "Sources")
+        .executableTarget(name: "MusicCastRemote", path: "Sources")
     ]
 )

@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct YamahaRemoteApp: App {
+struct MusicCastRemoteApp: App {
     @StateObject private var receiver: Receiver
 
     init() {
@@ -12,14 +12,14 @@ struct YamahaRemoteApp: App {
     }
 
     var body: some Scene {
-        Window("Yamaha Remote", id: "main") {
+        Window("Remote for MusicCast", id: "main") {
             ContentView().environmentObject(receiver)
         }
         .defaultSize(width: 420, height: 760)
         .windowResizability(.contentMinSize)
         .commands { ReceiverCommands(receiver: receiver) }
 
-        MenuBarExtra("Yamaha Remote", systemImage: "hifispeaker.fill") {
+        MenuBarExtra("Remote for MusicCast", systemImage: "hifispeaker.fill") {
             MenuBarView().environmentObject(receiver)
         }
         .menuBarExtraStyle(.window)
@@ -29,9 +29,10 @@ struct YamahaRemoteApp: App {
 @main
 enum Entry {
     static func main() {
+        Migration.run()
         let arguments = CommandLine.arguments
         guard arguments.contains("--check") || arguments.contains("--discover") else {
-            YamahaRemoteApp.main()
+            MusicCastRemoteApp.main()
             return
         }
         Task { @MainActor in

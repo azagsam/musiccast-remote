@@ -76,7 +76,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Button { editingHost = true } label: {
                     HStack(spacing: 6) {
-                        Text(receiver.deviceName ?? "Yamaha Remote")
+                        Text(receiver.deviceName ?? "Remote for MusicCast")
                             .font(.system(size: 20, weight: .bold))
                             .lineLimit(1)
                         Image(systemName: "chevron.down")

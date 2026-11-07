@@ -25,7 +25,7 @@ struct SongHistory {
 
     static let url: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("Yamaha Remote", isDirectory: true)
+        return base.appendingPathComponent("Remote for MusicCast", isDirectory: true)
             .appendingPathComponent("song-history.json")
     }()
 

@@ -1,4 +1,4 @@
-# Yamaha Remote
+# Remote for MusicCast
 
 A small macOS app for controlling a Yamaha MusicCast receiver over the local network, using Yamaha Extended Control (YXC). Built and tested with an R-N602.
 
@@ -28,20 +28,20 @@ cd yamaha-remote
 ./build.sh
 ```
 
-This builds a release binary with `swift build` and packages it as `build/Yamaha Remote.app`, signed ad hoc for local use.
+This builds a release binary with `swift build` and packages it as `build/Remote for MusicCast.app`, signed ad hoc for local use.
 
 ## Install
 
 Copy the app into Applications and open it:
 
 ```sh
-cp -R "build/Yamaha Remote.app" /Applications/
-open "/Applications/Yamaha Remote.app"
+cp -R "build/Remote for MusicCast.app" /Applications/
+open "/Applications/Remote for MusicCast.app"
 ```
 
 On first launch:
 
-- **Local network access:** macOS asks whether Yamaha Remote may find devices on your local network. Choose **Allow**, or the app can't reach the receiver. If you declined, turn it on in System Settings ▸ Privacy & Security ▸ Local Network.
+- **Local network access:** macOS asks whether Remote for MusicCast may find devices on your local network. Choose **Allow**, or the app can't reach the receiver. If you declined, turn it on in System Settings ▸ Privacy & Security ▸ Local Network.
 - **Gatekeeper:** the app is signed ad hoc, not notarized. A copy you built yourself opens normally. A copy downloaded from elsewhere may be blocked; right-click it and choose **Open**, or allow it in System Settings ▸ Privacy & Security.
 
 The app looks for receivers with SSDP when it starts. If it doesn't find yours, click the receiver name at the top of the window and enter its IP address.
@@ -53,7 +53,7 @@ To start the app at login, add it in System Settings ▸ General ▸ Login Items
 ```sh
 git pull
 ./build.sh
-cp -R "build/Yamaha Remote.app" /Applications/
+cp -R "build/Remote for MusicCast.app" /Applications/
 ```
 
 Quit the running app before copying, then open it again.
@@ -63,12 +63,21 @@ Quit the running app before copying, then open it again.
 The binary has two options that don't open the UI:
 
 ```sh
-"build/Yamaha Remote.app/Contents/MacOS/YamahaRemote" --discover   # list receivers on the network
-"build/Yamaha Remote.app/Contents/MacOS/YamahaRemote" --check      # print status, presets and a test search
+"build/Remote for MusicCast.app/Contents/MacOS/MusicCastRemote" --discover   # list receivers on the network
+"build/Remote for MusicCast.app/Contents/MacOS/MusicCastRemote" --check      # print status, presets and a test search
 ```
 
 `--check` doesn't change playback or presets, but it does browse the receiver's radio menu.
 
 ## Data
 
-Settings are kept in the app's user defaults (`local.pyamaha.YamahaRemote`). The song history and routines are in `~/Library/Application Support/Yamaha Remote/`.
+Settings are kept in the app's user defaults (`io.github.azagsam.MusicCastRemote`). The song history and routines are in `~/Library/Application Support/Remote for MusicCast/`.
+Settings and data from versions named Yamaha Remote are copied over on first launch.
+
+## License
+
+[MIT](LICENSE)
+
+## Trademarks
+
+This is an independent project, not affiliated with, endorsed by or sponsored by Yamaha Corporation. Yamaha and MusicCast are trademarks of Yamaha Corporation, used here only to describe which devices the app works with.
