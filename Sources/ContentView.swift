@@ -45,7 +45,8 @@ struct ContentView: View {
 
             messages
         }
-        .frame(minWidth: 360, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity, alignment: .top)
+        // No fixed minHeight: the window's minimum comes from the content, so nothing is clipped.
+        .frame(minWidth: 360, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(FrostedWindowBackground().ignoresSafeArea())
         .sheet(isPresented: $receiver.showingSearch) {
             RadioSearchView().environmentObject(receiver)
