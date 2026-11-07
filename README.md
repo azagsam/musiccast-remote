@@ -23,6 +23,14 @@ A small macOS app for controlling a Yamaha MusicCast receiver over the local net
 - macOS 13 Ventura or later, on an Apple silicon or Intel Mac
 - A Yamaha MusicCast receiver on the same network as the Mac
 
+## Tested receivers
+
+| Model | Result |
+| --- | --- |
+| R-N602 | Everything works |
+
+Have a different MusicCast device? Please [report how it works](https://github.com/azagsam/musiccast-remote/issues/new?template=receiver_report.yml), even if everything works. See [#1](https://github.com/azagsam/musiccast-remote/issues/1).
+
 ## Install
 
 1. Download `Remote-for-MusicCast-<version>.zip` from the [latest release](https://github.com/azagsam/musiccast-remote/releases/latest) and unzip it.
