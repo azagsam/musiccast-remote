@@ -506,6 +506,13 @@ final class Receiver: ObservableObject {
 
     func move(_ preset: Preset, by offset: Int) {
         guard let target = neighbor(of: preset, by: offset) else { return }
+        move(preset, to: target)
+    }
+
+    /// Puts `preset` in `target`'s slot. The receiver inserts rather than swaps,
+    /// so the presets in between shift one slot towards where `preset` was.
+    func move(_ preset: Preset, to target: Preset) {
+        guard preset != target, preset.source == target.source else { return }
         let path: String
         switch preset.source {
         case .net: path = "netusb/movePreset?from=\(preset.number)&to=\(target.number)"

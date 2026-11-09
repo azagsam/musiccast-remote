@@ -1,8 +1,12 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @EnvironmentObject private var receiver: Receiver
     @State private var presetToRemove: Preset?
+    /// The preset being dragged, and the row it would land on.
+    @State private var dragging: Preset?
+    @State private var dropTarget: Preset?
     @State private var editingHost = false
     @State private var query = ""
     @State private var editingDB = false
@@ -531,6 +535,24 @@ struct ContentView: View {
                         ) {
                             receiver.recall(preset)
                         }
+                        .overlay(alignment: dragging.map { $0.number < preset.number } == true ? .bottom : .top) {
+                            if dropTarget == preset {
+                                Capsule()
+                                    .fill(Color.accentColor)
+                                    .frame(height: 2)
+                                    .offset(y: dragging.map { $0.number < preset.number } == true ? 1 : -1)
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                        .onDrag {
+                            dragging = preset
+                            return NSItemProvider(object: preset.id as NSString)
+                        }
+                        .onDrop(of: [.plainText], delegate: PresetDropDelegate(
+                            target: preset,
+                            dragging: $dragging,
+                            dropTarget: $dropTarget
+                        ) { receiver.move($0, to: preset) })
                         .contextMenu {
                             Button("Move Up") { receiver.move(preset, by: -1) }
                                 .disabled(receiver.neighbor(of: preset, by: -1) == nil)
@@ -728,6 +750,40 @@ private struct Artwork: View {
         .frame(width: 72, height: 72)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.black.opacity(0.1), lineWidth: 0.5))
+    }
+}
+
+/// Dropping a preset on a row puts it in that row's slot. A line above or below
+/// the row shows which side it lands on.
+private struct PresetDropDelegate: DropDelegate {
+    let target: Preset
+    @Binding var dragging: Preset?
+    @Binding var dropTarget: Preset?
+    let move: (Preset) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        dragging?.source == target.source
+    }
+
+    func dropEntered(info: DropInfo) {
+        if validateDrop(info: info), dragging != target { dropTarget = target }
+    }
+
+    func dropExited(info: DropInfo) {
+        if dropTarget == target { dropTarget = nil }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        let source = dragging
+        dragging = nil
+        dropTarget = nil
+        guard let source, source != target else { return false }
+        move(source)
+        return true
     }
 }
 

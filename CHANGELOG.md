@@ -4,6 +4,10 @@ Notable changes to Remote for MusicCast. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- Drag a saved station onto another to move it to that slot
+
 ## [1.0.0] - 2026-11-07
 
 First public release.
