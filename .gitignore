@@ -1,3 +1,6 @@
 .build/
 build/
 design/
+
+# Personal files that stay on this Mac
+local/
